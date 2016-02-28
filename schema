@@ -1,0 +1,119 @@
+DROP TABLE IF EXISTS persons CASCADE;
+CREATE TABLE persons (
+	id serial primary key,
+	name text not null,
+	email text not null,
+        password text not null,
+	created_at timestamptz,
+        updated_at timestamptz);
+
+DROP TABLE IF EXISTS signals CASCADE;
+CREATE TABLE signals (
+	id serial primary key,
+	person_id integer references persons(id) not null,
+	action text not null,
+	topic text,
+	created_at timestamptz,
+        updated_at timestamptz);
+
+DROP TABLE IF EXISTS yesletses CASCADE;
+CREATE TABLE yesletses (
+	id serial primary key,
+	signal_id integer references signals(id),
+	person_id integer references persons(id),
+	created_at timestamptz,
+        updated_at timestamptz);
+
+DROP SEQUENCE IF EXISTS person_ids;
+CREATE SEQUENCE person_ids START 1;
+
+DROP EXTENSION IF EXISTS pgcrypto;
+CREATE EXTENSION pgcrypto;
+
+DROP FUNCTION IF EXISTS on_record_insert() CASCADE;
+CREATE FUNCTION on_record_insert() RETURNS trigger AS $$
+  DECLARE
+    id_sequence VARCHAR;
+  BEGIN
+    SELECT TG_ARGV[0] INTO id_sequence;
+    NEW.id := nextval(id_sequence);
+    NEW.password := crypt(NEW.password, gen_salt('md5'));
+    NEW.created_at := now();
+    NEW.updated_at := now();
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS on_record_update() CASCADE;
+CREATE FUNCTION on_record_update() RETURNS trigger AS $$
+  BEGIN
+    NEW.id := OLD.id;
+    IF NEW.password = OLD.password THEN
+      NEW.password := OLD.password;
+    ELSE
+      NEW.password := crypt(NEW.password, gen_salt('md5'));
+    END IF;
+    NEW.created_at := OLD.created_at;
+    NEW.updated_at := now();
+    RETURN NEW;
+  END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER persons_insert
+  BEFORE INSERT ON persons
+  FOR EACH ROW
+  EXECUTE PROCEDURE on_record_insert('person_ids');
+
+CREATE TRIGGER persons_update
+  BEFORE UPDATE ON persons
+  FOR EACH ROW
+  EXECUTE PROCEDURE on_record_update();
+
+DROP SEQUENCE IF EXISTS signal_ids;
+CREATE SEQUENCE signal_ids START 2;
+
+DROP SEQUENCE IF EXISTS yeslets_ids;
+CREATE SEQUENCE yeslets_ids START 2;
+
+DROP FUNCTION IF EXISTS on_other_insert() CASCADE;
+CREATE FUNCTION on_other_insert() RETURNS trigger AS $$
+  DECLARE
+    id_sequence VARCHAR;
+  BEGIN
+    SELECT TG_ARGV[0] INTO id_sequence;
+    NEW.id := nextval(id_sequence);
+    NEW.created_at := now();
+    NEW.updated_at := now();
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql;
+
+DROP FUNCTION IF EXISTS on_other_update() CASCADE;
+CREATE FUNCTION on_other_update() RETURNS trigger AS $$
+  BEGIN
+    NEW.id := OLD.id;
+    NEW.created_at := OLD.created_at;
+    NEW.updated_at := now();
+    RETURN NEW;
+  END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER signal_insert
+  BEFORE INSERT ON signals
+  FOR EACH ROW
+  EXECUTE PROCEDURE on_other_insert('signal_ids');
+
+CREATE TRIGGER signals_update
+  BEFORE UPDATE ON signals
+  FOR EACH ROW
+  EXECUTE PROCEDURE on_other_update();
+
+CREATE TRIGGER yesletses_insert
+  BEFORE INSERT ON yesletses
+  FOR EACH ROW
+  EXECUTE PROCEDURE on_other_insert('yeslets_ids');
+
+CREATE TRIGGER yesletses_update
+  BEFORE UPDATE ON yesletses
+  FOR EACH ROW
+  EXECUTE PROCEDURE on_other_update();
