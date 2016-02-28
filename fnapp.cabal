@@ -22,7 +22,7 @@ executable fnapp
                      , wai
                      , warp
                      , text
-                     , text
+                     , logging
                      , postgresql-simple
                      , resource-pool
                      , containers

@@ -11,6 +11,7 @@ packages:
 extra-deps:
 - wai-session-clientsession-0.1
 - cereal-text-0.1.0.1
+- logging-3.0.2
 
 # Override default flag values for local packages and extra-deps
 flags: {}

@@ -9,46 +9,57 @@ module Session.Handlers where
 
 import           Web.Fn
 import           Network.Wai (Response, vault)
-import           Network.Wai.Session (withSession)
 import qualified Database.PostgreSQL.Simple as PG
 import           Data.Pool (Pool, withResource)
 import           Data.Text (Text)
 import           Data.Text.Read (decimal)
-import           Data.Maybe (fromMaybe, listToMaybe)
+import           Data.Maybe (fromMaybe, isJust, listToMaybe)
 import qualified Data.Vault.Lazy as Vault
 import           Control.Lens ((^.), _1)
-import qualified Database.Redis as R
 
 import Session.Login
-import ViewComponents
 import Session.Views
 import Persons.Person
 import Context
 import Utils
 
 sessionHandler :: Ctxt -> IO (Maybe Response)
-sessionHandler ctxt = do
-  let Just (getSess, putSess) = Vault.lookup (ctxt ^. sess)
-                                             (vault (ctxt ^. req ._1))
-  current <- fromMaybe "0" <$> getSess "visits"
-  let cur = case decimal current of
-              Left _ -> error "Bad value in session"
-              Right (n, _) -> n
-  putSess "visit" (showT (cur + 1 :: Int))
-  okText (showT cur)
+sessionHandler ctxt =
+  do let Just (getSess, putSess) = Vault.lookup (ctxt ^. sess)
+                                                (vault (ctxt ^. req . _1))
+     current <- fromMaybe "0" <$> getSess "visits"
+     let cur = case decimal current of
+                 Left _ -> error "Bad value in session"
+                 Right (n,_) -> n
+     putSess "visits" (showT (cur + 1 :: Int))
+     okText (showT cur)
 
 doLoginHandler :: Ctxt -> Text -> Text -> IO (Maybe Response)
-doLoginHandler ctxt email pass = do
-  maybePerson <- tryLogin (Login email pass) (_db ctxt)
+doLoginHandler ctxt em pass = do
+  maybePerson <- tryLogin (Login em pass) (_db ctxt)
   case maybePerson of
-    Just p -> route ctxt [ path "id" ==> (\ctxt -> okText (showT $ pId p))
-                         , path "name" ==> (\ctxt -> okText (showT $ pName p))
-                         , path "email" ==> (\ctxt -> okText (showT $ pEmail p))
-                         , anything ==> (\ctxt -> okText (showT $ p)) ]
+    Just p -> do
+      let Just (_, putSess) = Vault.lookup (ctxt ^. sess)
+                                           (vault (ctxt ^. req . _1))
+      putSess "personId" (showT $ pId p)
+      okText $ showT p
     Nothing -> okText "Ah! Ah! Ah! YOU DIDN'T SAY THE MAGIC WORD"
 
 loginHandler :: Ctxt -> IO (Maybe Response)
-loginHandler ctxt = lucidHtml $ loginView
+loginHandler ctxt = do
+  login <- loggedIn ctxt
+  lucidHtml $ loginView (isJust login)
+
+loggedIn :: Ctxt -> IO (Maybe Int)
+loggedIn ctxt = do
+  let Just (getSess, _) = Vault.lookup (ctxt ^. sess)
+                                       (vault (ctxt ^. req . _1))
+  maybeId <- getSess "personId"
+  let pId' = case maybeId of
+               Nothing -> Nothing
+               Just n -> Just (readT n)
+  putStrLn $ "Inside loggedIn " ++ show pId'
+  return pId'
 
 tryLogin :: Login -> Pool PG.Connection -> IO (Maybe Person)
 tryLogin login pgpool =

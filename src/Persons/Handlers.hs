@@ -4,15 +4,9 @@ module Persons.Handlers where
 
 import           Web.Fn
 import           Network.Wai (Response)
-import           Data.Text (Text, pack)
-import qualified Data.Text as T
-import qualified Data.Text.Read as T
-import           Data.Monoid ((<>))
+import           Data.Text (Text)
 
-import Data.Monoid ((<>), mempty)
-import Data.Int (Int64)
 import Context
-import Persons.Person
 import Utils
 import Persons.Data
 
@@ -21,7 +15,7 @@ personsHandler ctxt =
   route ctxt [ path "id" // segment ==> personsByIdHandler
              , path "name" // segment ==> personsByNameHandler
              , path "email" // segment ==> personsByEmailHandler
-             , anything ==> (\ctxt -> do
+             , anything ==> (\_ -> do
                    persons <- queryPersons (_db ctxt)
                    okText (showT persons))]
 

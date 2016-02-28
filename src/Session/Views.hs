@@ -4,11 +4,11 @@
 module Session.Views where
 
 import           Lucid
-import ViewComponents (siteHeader)
+import           ViewComponents (siteHeader)
 
-loginView :: Html ()
-loginView = do
-  siteHeader "login"
+loginView :: Bool -> Html ()
+loginView loggedIn = do
+  siteHeader "login" loggedIn
   h1_ "Login"
   form_ [action_ "/dologin",
          method_ "post"] $ do

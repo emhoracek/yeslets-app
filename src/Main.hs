@@ -9,18 +9,20 @@ module Main where
 
 import           Web.Fn
 import           Network.Wai.Handler.Warp (run)
-import Control.Exception (SomeException, catch)
-import Data.Serialize.Text ()
+import           Control.Exception (SomeException, catch)
+import           Data.Serialize.Text ()
 import           Network.Wai (Application, Response)
 import           Network.Wai.Session (withSession)
 import           Network.Wai.Session.ClientSession (clientsessionStore)
 import Web.ClientSession (randomKey)
 import Data.Default (def)
+import Data.Maybe (isJust)
 import qualified Database.PostgreSQL.Simple as PG
 import qualified Data.Vault.Lazy as Vault
 import           Data.Pool (createPool, destroyAllResources)
 import           Control.Lens ((^.))
 import qualified Database.Redis as R
+import           Control.Logging (withStdoutLogging, log')
 
 import Context
 import Views (welcomeView)
@@ -39,19 +41,19 @@ initializer = do
                                                    "123"
                                                    "yeslets"))
                         PG.close 1 60 20
-  redis <- R.connect R.defaultConnectInfo
+  redis' <- R.connect R.defaultConnectInfo
   session <- Vault.newKey
-  return (Ctxt defaultFnRequest pgpool redis session)
+  return (Ctxt defaultFnRequest pgpool redis' session)
 
 site :: Ctxt -> IO Response
-site ctxt =
+site ctxt = do
+  maybeLoginId <- loggedIn ctxt
+  putStrLn $ "Request says: " ++ (show maybeLoginId)
   route ctxt [ end ==> welcomeHandler
              , path "signals" ==> signalsHandler
              , path "signal" // segment // end ==> signalHandler
-             , path "signal" //
-                 segment //
-                 path "yeslets" //
-                 segment ==> addYesletsHandler
+             , path "signal" // segment //
+                 path "yeslets" // end ==> yesletsHandler
              , path "persons" ==> personsHandler
              , path "session" ==> sessionHandler
              , path "login" // end ==> loginHandler
@@ -64,7 +66,8 @@ welcomeHandler :: Ctxt -> IO (Maybe Response)
 welcomeHandler ctxt = do
   signals <- querySignals (_db ctxt)
   persons <- queryPersons (_db ctxt)
-  lucidHtml $ welcomeView signals persons
+  isLoggedIn <- loggedIn ctxt
+  lucidHtml $ welcomeView signals persons (isJust isLoggedIn)
 
 app :: IO (Application, IO())
 app = do
@@ -77,7 +80,8 @@ app = do
 
 -- Run initialized app on port 8000
 main :: IO ()
-main = do
+main = withStdoutLogging $ do
+  log' $ "Starting server on port 8000..."
   (app', shutdown) <- app
   catch (run 8000 app')
         (\(_ :: SomeException) -> shutdown)

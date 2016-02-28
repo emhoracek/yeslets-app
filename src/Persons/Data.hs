@@ -4,7 +4,6 @@ module Persons.Data where
 
 import qualified Database.PostgreSQL.Simple as PG
 import           Data.Text (Text)
-import qualified Data.Text as T
 import           Data.Pool (Pool, withResource)
 import           Data.Maybe (listToMaybe)
 

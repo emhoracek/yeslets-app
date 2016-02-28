@@ -7,14 +7,12 @@
 
 module ViewComponents where
 
-import           Web.Fn (okHtml)
-import           Network.Wai (Response)
 import           Data.Text (Text)
-import           Data.Text.Lazy (toStrict)
 import           Lucid
+import           Context
 
-siteHeader :: Text -> Html ()
-siteHeader pageTitle = do
+siteHeader :: Text -> Bool -> Html ()
+siteHeader pageTitle loggedIn= do
   html_ $ do
     head_ $ do
       title_ (toHtml pageTitle)
@@ -24,4 +22,6 @@ siteHeader pageTitle = do
       header_ $ do
         h1_ "Yeslets!"
         p_ $ do
-          a_ [href_ "/login"] "Log in"
+          if loggedIn
+          then a_ [href_ "/logout"] "Log out"
+          else a_ [href_ "/login"] "Log in"

@@ -5,8 +5,7 @@ module Signals.Data where
 import qualified Database.PostgreSQL.Simple as PG
 import           Database.PostgreSQL.Simple.FromRow
 import           Data.Pool (Pool, withResource)
-import           Data.Text (Text, pack)
-import qualified Data.Text as T
+import           Data.Text (Text)
 import           Data.Maybe (fromJust, listToMaybe)
 import           Data.Int (Int64)
 
@@ -39,7 +38,7 @@ instance FromRow DbYeslets where
   fromRow = DbYeslets <$> field <*> field <*> field
 
 toYeslets :: Pool PG.Connection -> DbYeslets -> IO Yeslets
-toYeslets pgpool (DbYeslets i p s) = do
+toYeslets pgpool (DbYeslets _ p _) = do
   person <- findPersonById p pgpool
   return $ Yeslets (fromJust person)
 
@@ -51,11 +50,18 @@ querySignals pgpool =
         mapM (toSignal pgpool) ss )
 
 addYeslets :: Int -> Int -> Pool PG.Connection -> IO Int64
-addYeslets sId pId pgpool = do
+addYeslets sId' pId pgpool = do
   withResource pgpool
     (\conn ->
       let q = "INSERT INTO yesletses (signal_id, person_id) VALUES (?, ?)" in
-      PG.execute conn q (sId, pId) :: IO Int64)
+      PG.execute conn q (sId', pId) :: IO Int64)
+
+removeYeslets :: Int -> Int -> Pool PG.Connection -> IO Int64
+removeYeslets sId' pId' pgpool = do
+  withResource pgpool
+    (\conn ->
+      let q = "DELETE FROM yesletses WHERE signal_id = ? AND person_id = ?" in
+      PG.execute conn q (sId', pId') :: IO Int64)
 
 findSignalById :: Int -> Pool PG.Connection -> IO (Maybe Signal)
 findSignalById id' pgpool =

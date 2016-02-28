@@ -11,12 +11,12 @@ import Signals.Views
 import Persons.Person
 import Persons.Views
 
-welcomeView :: [Signal] -> [Person] -> Html ()
-welcomeView signals persons = do
-    siteHeader "Yeslets!"
+welcomeView :: [Signal] -> [Person] -> Bool -> Html ()
+welcomeView signals persons loggedIn = do
+    siteHeader "Yeslets!" loggedIn
     div_ $ do
       h1_ "Signals"
-      signalsHtml signals
+      signalsHtml loggedIn signals
     div_ $ do
       h1_ "People"
       personsHtml persons

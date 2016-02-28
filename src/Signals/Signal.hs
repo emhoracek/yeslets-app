@@ -2,8 +2,7 @@
 
 module Signals.Signal where
 
-import           Data.Text (Text, pack)
-import qualified Data.Text as T
+import Data.Text (Text)
 import Persons.Person
 
 data Signal = Signal { sId        :: Int

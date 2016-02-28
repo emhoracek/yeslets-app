@@ -16,5 +16,5 @@ personsHtml persons = foldr (<>) mempty (map personHtml persons)
 personHtml :: Person -> Html ()
 personHtml person =
   div_ [class_ "person"] $
-    p_ $ a_ [href_ ("/persons/id" <> showT (pId person))]
+    p_ $ a_ [href_ ("/persons/id/" <> showT (pId person))]
             (toHtml $ pName person)
