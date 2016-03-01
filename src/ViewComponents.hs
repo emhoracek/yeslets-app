@@ -1,17 +1,15 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module ViewComponents where
 
 import           Data.Text (Text)
 import           Lucid
-import           Context
+import Data.Monoid ((<>))
 
-siteHeader :: Text -> Bool -> Html ()
+import Persons.Person
+
+siteHeader :: Text -> Maybe Person -> Html ()
 siteHeader pageTitle loggedIn= do
   html_ $ do
     head_ $ do
@@ -22,6 +20,7 @@ siteHeader pageTitle loggedIn= do
       header_ $ do
         h1_ "Yeslets!"
         p_ $ do
-          if loggedIn
-          then a_ [href_ "/logout"] "Log out"
-          else a_ [href_ "/login"] "Log in"
+          case loggedIn of
+           Just p ->
+             "Welcome, " <> (toHtml $ pName p) <> a_ [href_ "/logout"] "Log out"
+           Nothing -> a_ [href_ "/login"] "Log in"

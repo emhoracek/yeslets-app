@@ -20,6 +20,7 @@ import           Control.Lens ((^.), _1)
 import Session.Login
 import Session.Views
 import Persons.Person
+import Persons.Data
 import Context
 import Utils
 
@@ -48,7 +49,10 @@ doLoginHandler ctxt em pass = do
 loginHandler :: Ctxt -> IO (Maybe Response)
 loginHandler ctxt = do
   login <- loggedIn ctxt
-  lucidHtml $ loginView (isJust login)
+  maybePerson <- case login of
+                   Just l  -> findPersonById l (_db ctxt)
+                   Nothing -> return Nothing
+  lucidHtml $ loginView maybePerson
 
 loggedIn :: Ctxt -> IO (Maybe Int)
 loggedIn ctxt = do
@@ -58,7 +62,6 @@ loggedIn ctxt = do
   let pId' = case maybeId of
                Nothing -> Nothing
                Just n -> Just (readT n)
-  putStrLn $ "Inside loggedIn " ++ show pId'
   return pId'
 
 tryLogin :: Login -> Pool PG.Connection -> IO (Maybe Person)

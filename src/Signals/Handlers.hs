@@ -5,6 +5,7 @@ module Signals.Handlers where
 import           Web.Fn
 import           Network.Wai (Response)
 import           Data.Monoid ((<>))
+import Data.Text (Text)
 import Data.Maybe (isJust)
 
 import Context
@@ -20,18 +21,27 @@ signalsHandler :: Ctxt -> IO (Maybe Response)
 signalsHandler ctxt = do
   login <- loggedIn ctxt
   signals <- querySignals (_db ctxt)
-  lucidHtml (siteHeader "signals" (isJust login) <>
-             signalsHtml (isJust login) signals)
+  lucidHtml (signalsHtml (isJust login) signals)
 
 signalHandler :: Ctxt -> Int -> IO (Maybe Response)
 signalHandler ctxt sId' = do
   login <- loggedIn ctxt
   maybeSignal <- findSignalById sId' (_db ctxt)
-  let html s = lucidHtml (siteHeader "signals" (isJust login) <>
-                          signalHtml (isJust login) s)
+  let html s = lucidHtml (signalHtml (isJust login) s)
   case maybeSignal of
    Just signal -> html signal
    _  -> return Nothing
+
+newSignalHandler :: Ctxt -> Text -> Text -> IO (Maybe Response)
+newSignalHandler ctxt action topic = do
+  maybeLogin <- loggedIn ctxt
+  case maybeLogin of
+    Just login -> do
+      rowsAffected <- addSignal action topic login (_db ctxt)
+      if rowsAffected == 1
+      then okText "Added!"
+      else okText "Nope"
+    Nothing -> okText "You can't do that."
 
 yesletsHandler :: Ctxt -> Int -> IO (Maybe Response)
 yesletsHandler ctxt sId' = do

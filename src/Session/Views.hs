@@ -5,8 +5,9 @@ module Session.Views where
 
 import           Lucid
 import           ViewComponents (siteHeader)
+import Persons.Person
 
-loginView :: Bool -> Html ()
+loginView :: Maybe Person -> Html ()
 loginView loggedIn = do
   siteHeader "login" loggedIn
   h1_ "Login"

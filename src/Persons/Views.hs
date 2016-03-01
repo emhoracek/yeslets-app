@@ -3,10 +3,8 @@
 
 module Persons.Views where
 
-import           Data.Text (Text, pack)
-import qualified Data.Text as T
 import           Lucid
-import Data.Monoid ((<>), mempty)
+import Data.Monoid ((<>))
 import Persons.Person
 import Utils
 

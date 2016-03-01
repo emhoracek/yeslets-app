@@ -34,6 +34,7 @@ executable fnapp
                      , wai-session
                      , wai-session-clientsession
                      , clientsession
+                     , cookie
                      , cereal-text
   default-language:    Haskell2010
 

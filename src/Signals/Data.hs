@@ -49,6 +49,13 @@ querySignals pgpool =
         ss <- PG.query_ conn "SELECT id, person_id, action, topic FROM signals" :: IO [ DbSignal]
         mapM (toSignal pgpool) ss )
 
+addSignal :: Text -> Text -> Int -> Pool PG.Connection -> IO Int64
+addSignal action topic pId pgpool = do
+  withResource pgpool
+    (\conn ->
+      let q = "INSERT INTO signals (action, topic, person_id) VALUES (?, ?, ?)" in
+      PG.execute conn q (action, topic, pId) :: IO Int64)
+
 addYeslets :: Int -> Int -> Pool PG.Connection -> IO Int64
 addYeslets sId' pId pgpool = do
   withResource pgpool
